@@ -3,7 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 cmake_minimum_required (VERSION 3.10)
-project(sockman VERSION 1.0.0)
+project(sockman VERSION 1.0.0 HOMEPAGE_URL "https://github.com/falk-werner/sockman")
 
 option(WITHOUT_TESTS    "disable unit tests" OFF)
 option(WITHOUT_EXAMPLES "disable examples"   OFF)
@@ -16,7 +16,12 @@ set(CMAKE_CXX_EXTENSIONS ON)
 add_library(sockman STATIC src/sockman/manager.cpp)
 target_include_directories(sockman PUBLIC include)
 target_include_directories(sockman PRIVATE src)
+set_target_properties(sockman PROPERTIES PUBLIC_HEADER "include/sockman/sockman.hpp;include/sockman/manager.hpp;include/sockman/handler_i.hpp")
 
+configure_file(sockman.pc.in sockman.pc @ONLY) 
+
+install(TARGETS sockman PUBLIC_HEADER DESTINATION include/sockman)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
 
 if(NOT WITHOUT_TESTS)
 

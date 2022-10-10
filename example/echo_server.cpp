@@ -29,18 +29,7 @@ void on_shutdown_requested(int)
 }
 
 
-class base_handler: public sockman::handler_i
-{
-public:
-    void on_readable() override { }
-    void on_writable() override { }
-    void on_hungup() override { }
-    void on_error() override { }
-};
-
 class connection
-: public base_handler
-, std::enable_shared_from_this<connection>
 {
     connection(sockman::manager& manager, int sock, int id)
     : manager_(manager)
@@ -54,7 +43,9 @@ public:
     static std::shared_ptr<connection> create(sockman::manager& manager, int sock, int id)
     {
         auto instance = std::shared_ptr<connection>(new connection(manager, sock, id));
-        manager.add(instance->fd, instance);
+        manager.add(instance->fd, EPOLLIN, [instance](int, uint32_t events){
+            instance->handle(events);
+        });
         manager.notify_on_readable(instance->fd);
 
         return instance;
@@ -66,7 +57,23 @@ public:
         std::cout << "connection #" << id_ << ": closed" << std::endl;
     }
 
-    void on_readable() override
+    void handle(uint32_t events)
+    {
+        if (0 != (events & EPOLLHUP))
+        {
+            on_hungup();
+        }
+        else if (0 != (events & EPOLLERR))
+        {
+            on_error();
+        }
+        else if (0 != (events & EPOLLIN))
+        {
+            on_readable();
+        }
+    }
+
+    void on_readable()
     {
         uint8_t buffer[257];
         auto count = ::read(fd, buffer, 1);
@@ -95,13 +102,13 @@ public:
         }
     }
 
-    void on_hungup() override
+    void on_hungup()
     {
         std::cout << "connection #" << id_ << ": hung up" << std::endl;
         manager_.remove(fd);
     }
 
-    void on_error() override
+    void on_error()
     {
         std::cout << "connection #" << id_ << ": error" << std::endl;
         manager_.remove(fd);
@@ -115,8 +122,6 @@ public:
 };
 
 class listener
-: public base_handler
-, std::enable_shared_from_this<listener>
 {
     listener(sockman::manager& manager, std::string const & path)
     : manager_(manager)
@@ -161,8 +166,12 @@ public:
     {
         auto instance = std::shared_ptr<listener>(new listener(manager, path));
 
-        manager.add(instance->fd, instance);
-        manager.notify_on_readable(instance->fd);
+        manager.add(instance->fd, EPOLLIN, [instance](int, uint32_t events){
+            if (0 != (events & EPOLLIN))
+            {
+                instance->on_readable();
+            }
+        });
 
         return instance;
     }
@@ -173,7 +182,7 @@ public:
         ::unlink(path_.c_str());
     }
 
-    void on_readable() override
+    void on_readable()
     {
         int client_fd = accept(fd, nullptr, nullptr);
         if (0 < client_fd)

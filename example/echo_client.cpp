@@ -26,17 +26,7 @@ void on_shutdown_requested(int)
     shutdown_requested = true;
 }
 
-class base_handler: public sockman::handler_i
-{
-public:
-    void on_readable() override { }
-    void on_writable() override { }
-    void on_hungup() override { }
-    void on_error() override { }
-};
-
-
-class connection: public base_handler
+class connection
 {
 public:
     explicit connection(sockman::manager & manager)
@@ -78,6 +68,22 @@ public:
             throw std::runtime_error("connect failed");
         }
     }
+
+    void handle(uint32_t events)
+    {
+        if (0 != (events & EPOLLHUP))
+        {
+            on_hungup();
+        }
+        else if (0 != (events & EPOLLIN))
+        {
+            on_readable();
+        }
+        else if (0 != (events & EPOLLOUT))
+        {
+            on_writable();
+        }
+    }    
 
     void on_readable()
     {
@@ -160,13 +166,21 @@ private:
     std::string value;
 };
 
-class input_handler: public base_handler
+class input_handler
 {
 public:
     explicit input_handler(connection& conn)
     : conn_(conn)
     {
 
+    }
+
+    void handle(uint32_t events)
+    {
+        if (0 != (events & EPOLLIN))
+        {
+            on_readable();
+        }
     }
 
     void on_readable()
@@ -203,13 +217,17 @@ int main(int argc, char * argv[])
 
         sockman::manager manager;
 
-        auto conn = std::make_shared<connection>(manager);
-        conn->connect(path);
+        connection conn(manager);
+        conn.connect(path);
 
-        manager.add(conn->get_fd(), conn);
-        manager.notify_on_readable(conn->get_fd());
+        manager.add(conn.get_fd(), EPOLLIN, [&conn](int, uint32_t events){
+            conn.handle(events);
+        });
 
-        manager.add(STDIN_FILENO, std::make_shared<input_handler>(*conn.get()));
+        input_handler inp(conn);
+        manager.add(STDIN_FILENO, EPOLLIN, [&inp](int, uint32_t events){
+            inp.handle(events);
+        });
         manager.notify_on_readable(STDIN_FILENO);
 
 

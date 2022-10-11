@@ -13,7 +13,50 @@
 namespace sockman
 {
 
-using socket_callback = ::std::function<void(int fd, uint32_t events)>;
+constexpr uint32_t const readable = EPOLLIN;
+constexpr uint32_t const writable = EPOLLOUT;
+
+class socket_events
+{
+public:
+    explicit inline socket_events(uint32_t events)
+    : events_(events)
+    {
+    }
+
+    inline ~socket_events() = default;
+
+    inline operator uint32_t() const
+    {
+        return events_;
+    }
+
+    inline bool readable() const
+    {
+        return (0 != (events_ & EPOLLIN));
+    }
+
+    inline bool writable() const
+    {
+        return (0 != (events_ & EPOLLOUT));
+    }
+
+    inline bool hungup() const
+    {
+        return (0 != (events_ & EPOLLHUP));
+    }
+
+    inline bool error() const
+    {
+        return (0 != (events_ & EPOLLERR));
+    }
+
+private:
+    uint32_t const events_;
+};
+
+using socket_callback = ::std::function<void(int fd, socket_events events)>;
+
 
 class manager
 {

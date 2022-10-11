@@ -43,7 +43,7 @@ public:
     static std::shared_ptr<connection> create(sockman::manager& manager, int sock, int id)
     {
         auto instance = std::shared_ptr<connection>(new connection(manager, sock, id));
-        manager.add(instance->fd, EPOLLIN, [instance](int, uint32_t events){
+        manager.add(instance->fd, EPOLLIN, [instance](int, auto events){
             instance->handle(events);
         });
         manager.notify_on_readable(instance->fd);
@@ -57,17 +57,17 @@ public:
         std::cout << "connection #" << id_ << ": closed" << std::endl;
     }
 
-    void handle(uint32_t events)
+    void handle(sockman::socket_events events)
     {
-        if (0 != (events & EPOLLHUP))
+        if (events.hungup())
         {
             on_hungup();
         }
-        else if (0 != (events & EPOLLERR))
+        else if (events.error())
         {
             on_error();
         }
-        else if (0 != (events & EPOLLIN))
+        else if (events.readable())
         {
             on_readable();
         }
@@ -166,10 +166,10 @@ public:
     {
         auto instance = std::shared_ptr<listener>(new listener(manager, path));
 
-        manager.add(instance->fd, EPOLLIN, [instance](int, uint32_t events){
-            if (0 != (events & EPOLLIN))
+        manager.add(instance->fd, EPOLLIN, [instance](int, auto events){
+            if (events.readable())
             {
-                instance->on_readable();
+                instance->accept();
             }
         });
 
@@ -182,9 +182,9 @@ public:
         ::unlink(path_.c_str());
     }
 
-    void on_readable()
+    void accept()
     {
-        int client_fd = accept(fd, nullptr, nullptr);
+        int client_fd = ::accept(fd, nullptr, nullptr);
         if (0 < client_fd)
         {
             connection::create(manager_, client_fd, ++connection_id);

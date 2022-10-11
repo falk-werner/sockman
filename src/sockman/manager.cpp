@@ -124,7 +124,7 @@ void manager::service(int timeout)
     if (1 == rc)
     {
         auto * const context = reinterpret_cast<socket_context*>(event.data.ptr);
-        context->callback(context->fd, event.events);
+        context->callback(context->fd, socket_events(event.events));
     }
 }
 

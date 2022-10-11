@@ -7,17 +7,17 @@
 #ifndef SOCKMAN_SOCKETCONTEXT_HPP
 #define SOCKMAN_SOCKETCONTEXT_HPP
 
-#include "sockman/handler_i.hpp"
-#include <cstdint>
+#include "sockman/sockman.hpp"
 #include <memory>
 
 namespace sockman
 {
 
-struct socketcontext
+struct socket_context
 {
+    int fd;
     uint32_t events;
-    std::shared_ptr<handler_i> handler;
+    socket_callback callback;
 };
 
 }

@@ -16,7 +16,7 @@ set(CMAKE_CXX_EXTENSIONS ON)
 add_library(sockman STATIC src/sockman/manager.cpp)
 target_include_directories(sockman PUBLIC include)
 target_include_directories(sockman PRIVATE src)
-set_target_properties(sockman PROPERTIES PUBLIC_HEADER "include/sockman/sockman.hpp;include/sockman/manager.hpp;include/sockman/handler_i.hpp")
+set_target_properties(sockman PROPERTIES PUBLIC_HEADER "include/sockman/sockman.hpp")
 
 configure_file(sockman.pc.in sockman.pc @ONLY) 
 

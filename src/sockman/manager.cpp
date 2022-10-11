@@ -4,15 +4,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#include "sockman/manager.hpp"
-#include "sockman/socketcontext.hpp"
+#include "sockman/sockman.hpp"
+#include "sockman/socket_context.hpp"
 
 #include <unistd.h>
-#include <sys/epoll.h>
 
 #include <cstring>
 
 #include <unordered_map>
+#include <memory>
 #include <stdexcept>
 
 namespace sockman
@@ -35,10 +35,10 @@ public:
         ::close(fd);
     }
 
-    void modify(int sock, uint32_t mast, bool enable);
+    void modify(int sock, uint32_t mask, bool enable);
 
     int fd;
-    std::unordered_map<int, socketcontext> sockets;
+    std::unordered_map<int, std::unique_ptr<sockman::socket_context>> sockets;
 };
 
 manager::manager()
@@ -77,14 +77,16 @@ manager& manager::operator=(manager && other)
     return *this;
 }
 
-void manager::add(int sock, std::shared_ptr<handler_i> handler)
+void manager::add(int sock, uint32_t events, socket_callback callback)
 {
     remove(sock);
 
+    auto context = std::unique_ptr<socket_context>(new socket_context({sock, events, callback}));
+
     epoll_event event;
     memset(&event, 0, sizeof(event));
-    event.data.ptr = reinterpret_cast<void*>(handler.get());
-    event.events = 0;
+    event.data.ptr = reinterpret_cast<void*>(context.get());
+    event.events = events;
 
     int const rc = epoll_ctl(d->fd, EPOLL_CTL_ADD, sock, &event);
     if (0 != rc)
@@ -92,7 +94,7 @@ void manager::add(int sock, std::shared_ptr<handler_i> handler)
         throw std::runtime_error("epoll_ctl: failed to add socket");
     }
 
-    d->sockets.insert({sock, {0, handler}});
+    d->sockets.insert({sock, std::move(context)});
 }
 
 void manager::remove(int sock)
@@ -121,23 +123,8 @@ void manager::service(int timeout)
     int const rc = epoll_wait(d->fd, &event, 1, -1);
     if (1 == rc)
     {
-        auto * const handler = reinterpret_cast<handler_i*>(event.data.ptr);
-        if (0 != (event.events & EPOLLERR))
-        {
-            handler->on_error();            
-        }
-        else if (0 != (event.events & EPOLLHUP))
-        {
-            handler->on_hungup();            
-        }
-        else if (0 != (event.events & EPOLLIN))
-        {
-            handler->on_readable();
-        }
-        else if (0 != (event.events & EPOLLOUT))
-        {
-            handler->on_writable();
-        }
+        auto * const context = reinterpret_cast<socket_context*>(event.data.ptr);
+        context->callback(context->fd, socket_events(event.events));
     }
 }
 
@@ -148,19 +135,19 @@ void manager::detail::modify(int sock, uint32_t mask, bool enable)
     {
         epoll_event event;
         memset(&event, 0, sizeof(event));
-        event.data.ptr = reinterpret_cast<void*>(it->second.handler.get());
+        event.data.ptr = reinterpret_cast<void*>(it->second.get());
         if (enable)
         {
-            event.events = it->second.events | mask;
+            event.events = it->second->events | mask;
         }
         else
         {
-            event.events = it->second.events & (~mask);
+            event.events = it->second->events & (~mask);
         }
 
-        if (event.events != it->second.events)
+        if (event.events != it->second->events)
         {
-            it->second.events = event.events;
+            it->second->events = event.events;
             int const rc = epoll_ctl(fd, EPOLL_CTL_MOD, sock, &event);
             if (0 != rc)
             {

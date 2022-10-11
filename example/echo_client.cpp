@@ -14,6 +14,7 @@
 #include <csignal>
 
 #include <string>
+#include <queue>
 #include <iostream>
 #include <stdexcept>
 
@@ -26,21 +27,10 @@ void on_shutdown_requested(int)
     shutdown_requested = true;
 }
 
-class base_handler: public sockman::handler_i
+class connection
 {
 public:
-    void on_readable() override { }
-    void on_writable() override { }
-    void on_hungup() override { }
-    void on_error() override { }
-};
-
-
-class connection: public base_handler
-{
-public:
-    explicit connection(sockman::manager & manager)
-    : manager_(manager)
+    connection()
     {
         fd = socket(AF_LOCAL, SOCK_STREAM, 0);
         if (0 > fd)
@@ -79,51 +69,13 @@ public:
         }
     }
 
-    void on_readable()
-    {
-        std::string value = read();
-        std::cout << value << std::endl;
-    }
-
-    void on_writable()
-    {
-        write(value);
-        manager_.notify_on_writable(fd, false);
-    }
-
-    void request_write(std::string data)
-    {
-        value = data;
-        manager_.notify_on_writable(fd);
-    }
-
-    void on_hungup()
-    {
-        std::cerr << "error: connection closed by remote" << std::endl;
-        shutdown_requested = true;
-    }
-
-private:
     void write(std::string const & value)
     {
         if (value.size() < 256)
         {
             uint8_t length = static_cast<uint8_t>(value.size());
-            auto count = ::write(fd, &length, 1);
-            if (count != 1)
-            {
-                std::cerr << "write failed" << std::endl;
-                shutdown_requested = true;
-                return;
-            }
-
-            count = ::write(fd, value.data(), value.size());
-            if (count != value.size())
-            {
-                std::cerr << "write failed" << std::endl;
-                shutdown_requested = true;
-                return;
-            }
+            write_exact(reinterpret_cast<void*>(&length), 1);
+            write_exact(reinterpret_cast<void const*>(value.data()), value.size());
         }
         else
         {
@@ -134,62 +86,35 @@ private:
     std::string read()
     {
         uint8_t length;
-        auto count = ::read(fd, &length, 1);
-        if (count != 1)
-        {
-            std::cerr << "read failed" << std::endl;
-            shutdown_requested = true;
-            return "";
-        }
+        read_exact(reinterpret_cast<void*>(&length), 1);
 
         char buffer[256];
-        count = ::read(fd, buffer, length);
-        if (count != length)
-        {
-            std::cerr << "read failed" << std::endl;
-            shutdown_requested = true;
-            return "";
-        }
+        read_exact(reinterpret_cast<void*>(buffer), length);
         buffer[length] = '\0';
 
         return buffer;
     }
 
-    sockman::manager & manager_;
-    int fd;
-    std::string value;
-};
-
-class input_handler: public base_handler
-{
-public:
-    explicit input_handler(connection& conn)
-    : conn_(conn)
-    {
-
-    }
-
-    void on_readable()
-    {
-        std::string line;
-        if (std::getline(std::cin, line))
-        {
-            if (("exit" != line) && ("quit" != line))
-            {
-                conn_.request_write(line);
-            }
-            else
-            {
-                shutdown_requested = true;
-            }
-        }
-        else
-        {
-            shutdown_requested = true;
-        }
-    }
 private:
-    connection &conn_;
+    void read_exact(void * buffer, size_t length)
+    {
+        auto const count = ::read(fd, buffer, length);
+        if (count != length)
+        {
+            throw std::runtime_error("read failed");
+        }
+    }
+
+    void write_exact(void const * buffer, size_t length)
+    {
+        auto const count = ::write(fd, buffer, length);
+        if (count != length)
+        {
+            throw std::runtime_error("write failed");
+        }
+    }
+
+    int fd;
 };
 
 }
@@ -202,20 +127,57 @@ int main(int argc, char * argv[])
         std::string path = argv[1];
 
         sockman::manager manager;
+        std::queue<std::string> messages;
 
-        auto conn = std::make_shared<connection>(manager);
-        conn->connect(path);
+        connection conn;
+        conn.connect(path);
 
-        manager.add(conn->get_fd(), conn);
-        manager.notify_on_readable(conn->get_fd());
+        manager.add(conn.get_fd(), sockman::readable, [&manager, &conn, &messages](int, auto events){
+            if ((events.error()) || (events.hungup()))
+            {
+                shutdown_requested = true;
+            }
+            else if (events.readable())
+            {
+                std::cout << conn.read() << std::endl;
+            }
+            else if (events.writable())
+            {
+                if (!messages.empty())
+                {
+                    conn.write(messages.front());
+                    messages.pop();
+                }
 
-        manager.add(STDIN_FILENO, std::make_shared<input_handler>(*conn.get()));
-        manager.notify_on_readable(STDIN_FILENO);
+                manager.notify_on_writable(conn.get_fd(), !messages.empty());
+            }
+
+        });
+
+        manager.add(STDIN_FILENO, sockman::readable, [&manager, &conn, &messages](int, auto events){
+            if (events.readable())
+            {
+                std::string line;
+                if (std::getline(std::cin, line))
+                {
+                    messages.push(line);
+                    manager.notify_on_writable(conn.get_fd());
+                }
+            }
+        });
 
 
         while (!shutdown_requested)
         {
-            manager.service();
+            try
+            {
+                manager.service();
+            }
+            catch (std::exception const & ex)
+            {
+                std::cerr << "error: " << ex.what() << std::endl;
+                shutdown_requested = true;
+            }
         }
 
         std::cout << "shutdown" << std::endl;        

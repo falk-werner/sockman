@@ -87,7 +87,7 @@ Example:
 context::context(int argc, char * argv[])
 : name("<user>")
 , path("/tmp/sockman_chat.sock")
-, exit_code(0)
+, exit_code(EXIT_SUCCESS)
 , show_help(false)
 {
     static option const long_options[] =

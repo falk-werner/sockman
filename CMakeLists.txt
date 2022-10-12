@@ -79,5 +79,10 @@ target_link_libraries(simple_receiver PRIVATE sockman)
 add_executable(simple_listener example/simple_listener.cpp)
 target_link_libraries(simple_listener PRIVATE sockman)
 
+add_executable(chat_client example/chat_client.cpp)
+target_link_libraries(chat_client PRIVATE sockman)
+
+add_executable(chat_server example/chat_server.cpp)
+target_link_libraries(chat_server PRIVATE sockman)
 
 endif(NOT WITHOUT_EXAMPLES)

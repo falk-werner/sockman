@@ -73,5 +73,11 @@ target_link_libraries(echo_server PRIVATE sockman)
 add_executable(echo_client example/echo_client.cpp)
 target_link_libraries(echo_client PRIVATE sockman)
 
+add_executable(simple_receiver example/simple_receiver.cpp)
+target_link_libraries(simple_receiver PRIVATE sockman)
+
+add_executable(simple_listener example/simple_listener.cpp)
+target_link_libraries(simple_listener PRIVATE sockman)
+
 
 endif(NOT WITHOUT_EXAMPLES)

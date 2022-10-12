@@ -10,49 +10,6 @@
 #include <sys/epoll.h>
 #include <functional>
 
-/// @mainpage sockman
-///
-/// Lightweight epoll wrapper for C++.
-///
-/// \code{.cpp}
-/// #include <sockman/sockman.hpp>
-/// #include <iostream>
-///
-/// int main()
-/// {
-///     bool shutdown_requested = false;
-///     int fd = create_connected_socket();
-///
-///     sockman::manager manager;
-///     manager.add(fd, sockman::readable, [&shutdown_requested](int sock, auto events) {
-///         if (events.error() || events.hungup())
-///         {
-///             shutdown_requested = true;
-///         }
-///         else if (events.readable())
-///         {
-///             char buffer[80];
-///             auto count = ::read(sock, buffer, 79);
-///             if (count > 0)
-///             {
-///                 buffer[count] = '\0';
-///                 std::cout << buffer << std::endl;
-///             }
-///         }
-///     });
-///
-///     while (!shutdown_requested)
-///     {
-///         manager.service();
-///     }
-///
-///     manager.remove(fd);
-///     ::close(fd);
-///
-///     return 0;
-/// }
-/// \endcode
-
 namespace sockman
 {
 

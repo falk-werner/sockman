@@ -85,4 +85,7 @@ target_link_libraries(chat_client PRIVATE sockman)
 add_executable(chat_server example/chat_server.cpp)
 target_link_libraries(chat_server PRIVATE sockman)
 
+add_executable(timeout example/timeout.cpp)
+target_link_libraries(timeout PRIVATE sockman)
+
 endif(NOT WITHOUT_EXAMPLES)

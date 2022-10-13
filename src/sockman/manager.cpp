@@ -120,7 +120,7 @@ void manager::notify_on_writable(int sock, bool enable)
 void manager::service(int timeout)
 {
     epoll_event event;
-    int const rc = epoll_wait(d->fd, &event, 1, -1);
+    int const rc = epoll_wait(d->fd, &event, 1, timeout);
     if (1 == rc)
     {
         auto * const context = reinterpret_cast<socket_context*>(event.data.ptr);

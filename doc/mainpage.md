@@ -10,3 +10,4 @@ Lightweight epoll wrapper for C++.
 \example example/echo_server.cpp
 \example example/chat_client.cpp
 \example example/chat_server.cpp
+\example example/timeout.cpp

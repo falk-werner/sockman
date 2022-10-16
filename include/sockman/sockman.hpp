@@ -124,8 +124,8 @@ public:
 
     /// @brief enables or disabled notification of readable events
     ///
-    /// @note it is not allowed to configure an unmanaged socket
-    ///       (an exception is thrown in this case)
+    /// @throws std::excepttion it is not allowed to configure an 
+    ///         unmanaged socket
     ///
     /// @param sock socket to configure
     /// @param enable enables notifacation if true, otherwise notifiactions are disabled
@@ -133,8 +133,8 @@ public:
 
     /// @brief enables or disabled notification of writable events
     ///
-    /// @note it is not allowed to configure an unmanaged socket
-    ///       (an exception is thrown in this case)
+    /// @throws std::excepttion it is not allowed to configure an 
+    ///         unmanaged socket
     ///
     /// @param sock socket to configure
     /// @param enable 

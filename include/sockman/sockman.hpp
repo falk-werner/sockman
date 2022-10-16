@@ -113,9 +113,6 @@ public:
 
     /// @brief adds a socket to the manager
     ///
-    /// @note it is not allowed to add the same socket twice
-    ///       (an exception is thrown in this case)
-    ///
     /// @param sock socket to add
     /// @param events events to listen (0, or any comination of \ref readable an \ref writable)
     /// @param callback callback to invoke on event

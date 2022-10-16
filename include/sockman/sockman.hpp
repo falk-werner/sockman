@@ -118,7 +118,7 @@ public:
     /// @param callback callback to invoke on event
     void add(int sock, uint32_t events, socket_callback callback);
 
-    /// @brief removed a socket from the manager
+    /// @brief removes a socket from the manager
     /// @param sock socket to remove
     void remove(int sock);
 

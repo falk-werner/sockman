@@ -70,6 +70,7 @@ manager& manager::operator=(manager && other)
 {
     if (this != &other)
     {
+        delete this->d;
         this->d = other.d;
         other.d = nullptr;
     }
@@ -100,7 +101,7 @@ void manager::add(int sock, uint32_t events, socket_callback callback)
 void manager::remove(int sock)
 {
     auto it = d->sockets.find(sock);
-    if (it!= d->sockets.end())
+    if (it != d->sockets.end())
     {
         epoll_ctl(d->fd, EPOLL_CTL_DEL, sock, nullptr);
         d->sockets.erase(it);

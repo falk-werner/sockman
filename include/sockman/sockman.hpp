@@ -96,7 +96,7 @@ class manager
     manager(manager const &) = delete;
     manager& operator=(manager const &) = delete;
 public:
-    /// @brief initialized a socket event manager
+    /// @brief initializes a socket event manager
     manager();
 
     /// @brief cleans up the instance
@@ -113,31 +113,28 @@ public:
 
     /// @brief adds a socket to the manager
     ///
-    /// @note it is not allowed to add the same socket twice
-    ///       (an exception is thrown in this case)
-    ///
     /// @param sock socket to add
     /// @param events events to listen (0, or any comination of \ref readable an \ref writable)
     /// @param callback callback to invoke on event
     void add(int sock, uint32_t events, socket_callback callback);
 
-    /// @brief removed a socket from the manager
+    /// @brief removes a socket from the manager
     /// @param sock socket to remove
     void remove(int sock);
 
-    /// @brief enables or disabled notification of readable events
+    /// @brief enables or disables notification of readable events
     ///
-    /// @note it is not allowed to configure an unmanaged socket
-    ///       (an exception is thrown in this case)
+    /// @throws std::excepttion it is not allowed to configure an 
+    ///         unmanaged socket
     ///
     /// @param sock socket to configure
     /// @param enable enables notifacation if true, otherwise notifiactions are disabled
     void notify_on_readable(int sock, bool enable = true);
 
-    /// @brief enables or disabled notification of writable events
+    /// @brief enables or disables notification of writable events
     ///
-    /// @note it is not allowed to configure an unmanaged socket
-    ///       (an exception is thrown in this case)
+    /// @throws std::excepttion it is not allowed to configure an 
+    ///         unmanaged socket
     ///
     /// @param sock socket to configure
     /// @param enable 

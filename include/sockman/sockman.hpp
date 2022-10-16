@@ -122,7 +122,7 @@ public:
     /// @param sock socket to remove
     void remove(int sock);
 
-    /// @brief enables or disabled notification of readable events
+    /// @brief enables or disables notification of readable events
     ///
     /// @throws std::excepttion it is not allowed to configure an 
     ///         unmanaged socket
@@ -131,7 +131,7 @@ public:
     /// @param enable enables notifacation if true, otherwise notifiactions are disabled
     void notify_on_readable(int sock, bool enable = true);
 
-    /// @brief enables or disabled notification of writable events
+    /// @brief enables or disables notification of writable events
     ///
     /// @throws std::excepttion it is not allowed to configure an 
     ///         unmanaged socket

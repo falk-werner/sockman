@@ -96,7 +96,7 @@ class manager
     manager(manager const &) = delete;
     manager& operator=(manager const &) = delete;
 public:
-    /// @brief initialized a socket event manager
+    /// @brief initializes a socket event manager
     manager();
 
     /// @brief cleans up the instance

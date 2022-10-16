@@ -134,3 +134,11 @@ TEST(socketmanager, callback_on_readable)
 
     manager.service();
 }
+
+TEST(socketmanager, move_assign)
+{
+    sockman::manager first;
+    sockman::manager second;
+
+    first = std::move(second);
+}

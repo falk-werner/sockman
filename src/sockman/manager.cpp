@@ -70,6 +70,7 @@ manager& manager::operator=(manager && other)
 {
     if (this != &other)
     {
+        delete this->d;
         this->d = other.d;
         other.d = nullptr;
     }
